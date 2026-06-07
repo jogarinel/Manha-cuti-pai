@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURY | Celestial Engine</title>
+    
+    <!-- STANDARD ICON LINK: Put your 'icon.png' in the same folder as this file -->
+    <link rel="icon" type="image/png" href="icon.png">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Outfit:wght@300;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --green: #00ff8c;
+            --bg: #000a05;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none !important; }
+        body { 
+            background: var(--bg); color: #fff; font-family: 'Outfit', sans-serif; 
+            overflow-x: hidden; scroll-behavior: smooth;
+        }
+
+        canvas#particle-canvas {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1; pointer-events: none;
+        }
+
+        #cursor {
+            position: fixed; width: 12px; height: 12px; background: var(--green);
+            border-radius: 50%; pointer-events: none; z-index: 10000;
+            box-shadow: 0 0 20px var(--green); transform: translate(-50%, -50%);
+        }
+
+        /* BIGGER NAVIGATION SECTION */
+        nav {
+            position: fixed; top: 35px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; background: rgba(0, 50, 30, 0.6); 
+            backdrop-filter: blur(25px); border: 2px solid rgba(0, 255, 140, 0.4);
+            padding: 15px 30px; border-radius: 500px; display: flex; gap: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .nav-link {
+            color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px;
+            font-weight: 800; text-transform: uppercase; letter-spacing: 3px;
+            padding: 14px 28px; border-radius: 100px; transition: 0.4s all ease;
+        }
+        .nav-link.active, .nav-link:hover { 
+            color: #000; background: var(--green); 
+            box-shadow: 0 0 30px var(--green); 
+            transform: translateY(-2px);
+        }
+
+        section {
+            min-height: 100vh; width: 100%; display: flex; align-items: center;
+            padding: 0 8%; position: relative;
+        }
+
+        /* ANIMATED LEVITATING CARDS */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04); 
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(0, 255, 140, 0.3); 
+            border-radius: 60px;
+            padding: 80px; max-width: 950px;
+            animation: mainFloat 7s ease-in-out infinite;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s ease-out;
+        }
+
+        /* Animation when in view */
+        section.active-section .glass-card {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @keyframes mainFloat {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-35px) scale(1.02); }
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif; font-size: clamp(2.5rem, 6.5vw, 6rem);
+            line-height: 0.85; text-transform: uppercase; margin-bottom: 30px;
+            background: linear-gradient(to right, #fff, var(--green));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        p { font-size: 1.5rem; color: rgba(255,255,255,0.8); font-weight: 300; line-height: 1.6; }
+        b { color: var(--green); font-weight: 600; }
+
+        /* Photo Section */
+        .gallery {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 40px;
+        }
+        .gem {
+            height: 400px; border-radius: 35px; overflow: hidden;
+            border: 1px solid rgba(0,255,140,0.2); background: rgba(0,0,0,0.5);
+            position: relative; transition: 0.6s cubic-bezier(0.2, 1, 0.3, 1);
+        }
+        .gem img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: 1s ease-in-out; }
+        .gem:hover { transform: scale(1.1) translateY(-15px) rotate(2deg); border-color: var(--green); z-index: 10; }
+        .gem-text {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            font-family: 'Syne'; color: var(--green); font-size: 0.8rem; font-weight: bold;
+        }
+
+        .step {
+            background: rgba(0, 255, 115, 0.08); padding: 35px; border-radius: 30px;
+            border: 1px solid rgba(0, 255, 115, 0.15); margin-top: 18px;
+            transition: 0.5s;
+        }
+        .step:hover { background: rgba(0, 255, 115, 0.2); transform: translateX(25px); border-color: var(--green); }
+        .step-title { font-family: 'Syne'; font-size: 1.8rem; display: flex; align-items: center; gap: 20px; color: #fff; }
+
+        .letter-text {
+            border-left: 6px solid var(--green); padding-left: 45px;
+            font-size: 1.7rem; font-style: italic; color: rgba(255,255,255,0.9);
+            line-height: 1.8;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="cursor"></div>
+    <canvas id="particle-canvas"></canvas>
+
+    <nav>
+        <a href="#welcome" class="nav-link active">Welcome</a>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#gems" class="nav-link">5 Gems</a>
+        <a href="#guide" class="nav-link">Guide</a>
+        <a href="#letter" class="nav-link">Letter</a>
+    </nav>
+
+    <div id="container">
+        <section id="welcome" class="active-section">
+            <div class="glass-card">
+                <h1>Welcome to<br>Aury's Realm</h1>
+                <p>Welcome users into a <b>breathtaking digital ecosystem</b> forged out of pure love, light, and hyper-kinetic energy—custom-engineered for a magnificent soul. She is a <b>dazzling cosmic light</b>. Traverse this dashboard to unlock the full masterpiece celebrating Aury.</p>
+            </div>
+        </section>
+
+        <section id="about">
+            <div class="glass-card">
+                <h1>The Phenomenal<br>Aury</h1>
+                <p>A rare individual walking the earth carrying a <b>brilliant, unmatched spark</b>. She is extraordinarily intelligent, possessing an exceptionally fast, beautiful mind handling vast knowledge with absolute, <b>flawless ease</b>. Her soul is unimaginably sweet, friendly, and kind, making her warmth effortlessly contagious to everyone.</p>
+            </div>
+        </section>
+
+        <section id="gems">
+            <div class="glass-card" style="max-width: 1400px;">
+                <h1>Aury's Sacred Gallery</h1>
+                <div class="gallery">
+                    <div class="gem"><div class="gem-text">GEM-01</div><img src="aury1.jpg" onload="this.style.opacity=1"></div>
+                    <div class="gem"><div class="gem-text">GEM-02</div><img src="aury2.jpg" onload="this.style.opacity=1"></div>
+                    <div class="gem"><div class="gem-text">GEM-03</div><img src="aury3.jpg" onload="this.style.opacity=1"></div>
+                    <div class="gem"><div class="gem-text">GEM-04</div><img src="aury4.jpg" onload="this.style.opacity=1"></div>
+                    <div class="gem"><div class="gem-text">GEM-05</div><img src="aury5.jpg" onload="this.style.opacity=1"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="guide">
+            <div class="glass-card">
+                <h1>Intellectual<br>Power-Ups</h1>
+                <div class="step">
+                    <div class="step-title"><span>🚀</span> Fuel Your Infinite Curiosity</div>
+                    <p style="font-size: 1.2rem; margin-top: 5px;">Challenge equations, probe beneath the surface, and conquer how the universe operates behind the scenes.</p>
+                </div>
+                <div class="step">
+                    <div class="step-title"><span>📈</span> Automate a Daily Grand Ritual</div>
+                    <p style="font-size: 1.2rem; margin-top: 5px;">Capitalize on consistency as a legendary cheat code to build an impenetrable empire of knowledge.</p>
+                </div>
+                <div class="step">
+                    <div class="step-title"><span>💎</span> Fiercely Command Every Challenge</div>
+                    <p style="font-size: 1.2rem; margin-top: 5px;">Treat complex riddles as thrilling games begging to be dismantled by a massive brain.</p>
+                </div>
+                <div class="step">
+                    <div class="step-title"><span>⚡</span> Radiantly Recharge Your Core Battery</div>
+                    <p style="font-size: 1.2rem; margin-top: 5px;">Seamlessly balance monumental efforts with play, roaring laughter, and pristine sleep.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="letter">
+            <div class="glass-card">
+                <h1>A Masterpiece<br>Named Aury</h1>
+                <div class="letter-text">
+                    Dear Aury,<br><br>
+                    To watch you step boldly out into this vast world is an absolute, unparalleled privilege. You hold a truly breathtaking, rare blend of human attributes: a <b>brilliant, high-tier intelligence</b> matched perfectly with a genuinely sweet, pure disposition.<br><br>
+                    Your profound kindness is your <b>ultimate power structure</b>, and your sharp, lightning-fast intellect will rocket you into heights most minds only dream of catching. Always keep your head held high, completely believe in your unmatched destiny, and remember how immensely proud I am of the spectacular person you are. Shine completely without end, Aury. The entire world has been waiting for your greatness. 💚
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        /**
+         * 3D BACKGROUND: THE ROTATING ATOM OFFSET TO SIDE
+         */
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('particle-canvas'), antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // NUCLEUS ATOM (Moved to the side: +4 on X axis)
+        const atomicSystem = new THREE.Group();
+        const nucleus = new THREE.Mesh(
+            new THREE.SphereGeometry(1.6, 32, 32),
+            new THREE.MeshPhongMaterial({ color: 0x00ff8c, emissive: 0x00ff8c, emissiveIntensity: 0.7, wireframe: true })
+        );
+        atomicSystem.add(nucleus);
+
+        for(let i=0; i<3; i++) {
+            const orbitRing = new THREE.Mesh(
+                new THREE.TorusGeometry(3.5 + i, 0.04, 16, 100),
+                new THREE.MeshBasicMaterial({ color: 0x00ff8c, transparent: true, opacity: 0.3 })
+            );
+            orbitRing.rotation.x = Math.random() * Math.PI;
+            orbitRing.rotation.z = Math.random() * Math.PI;
+            atomicSystem.add(orbitRing);
+        }
+        atomicSystem.position.set(4.5, 0, 0); // SIDE POSITION FIXED
+        scene.add(atomicSystem);
+
+        // VORTEX BALLS (Rotation fixed)
+        const ballParticles = [];
+        const ballG = new THREE.SphereGeometry(0.09, 12, 12);
+        const ballM = new THREE.MeshBasicMaterial({ color: 0x00ff8c });
+
+        for(let i=0; i<300; i++) {
+            const bp = new THREE.Mesh(ballG, ballM);
+            const radius = 6 + Math.random() * 18;
+            const angle = Math.random() * Math.PI * 2;
+            bp.position.set(Math.cos(angle)*radius, (Math.random()-0.5)*30, Math.sin(angle)*radius);
+            bp.userData = { 
+                speed: 0.006 + Math.random() * 0.012,
+                radius: radius,
+                angle: angle
+            };
+            ballParticles.push(bp);
+            scene.add(bp);
+        }
+
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ptLight = new THREE.PointLight(0x00ff8c, 30);
+        ptLight.position.set(15, 15, 15);
+        scene.add(ambLight, ptLight);
+        camera.position.z = 12;
+
+        let mouseX = 0, mouseY = 0;
+        window.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+            gsap.to("#cursor", { x: e.clientX, y: e.clientY, duration: 0.1 });
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            atomicSystem.rotation.y += 0.015;
+            atomicSystem.position.y = Math.sin(Date.now() * 0.001) * 0.6 + (mouseY * 2);
+            
+            // Kinetic Balls vortex rotation
+            ballParticles.forEach(p => {
+                p.userData.angle += p.userData.speed;
+                p.position.x = Math.cos(p.userData.angle) * p.userData.radius + (mouseX * 2.5);
+                p.position.z = Math.sin(p.userData.angle) * p.userData.radius;
+                p.position.y += Math.sin(Date.now() * 0.0015 + p.userData.radius) * 0.025;
+            });
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // GSAP: SMOOTH TRANSITIONS & NAV
+        gsap.registerPlugin(ScrollToPlugin);
+        const btns = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('section');
+
+        btns.forEach(b => {
+            b.addEventListener('click', (e) => {
+                e.preventDefault();
+                gsap.to(window, { duration: 1.5, scrollTo: b.getAttribute('href'), ease: "power4.inOut" });
+            });
+        });
+
+        window.addEventListener('scroll', () => {
+            let top = window.scrollY;
+            sections.forEach(sec => {
+                let id = sec.getAttribute('id');
+                let offset = sec.offsetTop - 500;
+                let height = sec.offsetHeight;
+                if(top >= offset && top < offset + height) {
+                    sec.classList.add('active-section');
+                    btns.forEach(btn => {
+                        btn.classList.remove('active');
+                        if(btn.getAttribute('href') === `#${id}`) btn.classList.add('active');
+                    });
+                }
+            });
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
